@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+group 'de.fabianweller.dhbwcoursesbot'
+version 'v1'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation group: 'org.javacord', name: 'javacord', version: '3.1.1'
+    implementation group: 'de.btobastian.sdcf4j', name: 'sdcf4j-core', version: '1.0.10'
+    implementation group: 'de.btobastian.sdcf4j', name: 'sdcf4j-javacord', version: '1.0.10'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.3'
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.11.3'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
