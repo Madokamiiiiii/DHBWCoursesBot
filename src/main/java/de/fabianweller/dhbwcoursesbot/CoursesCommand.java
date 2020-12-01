@@ -9,6 +9,7 @@ import org.javacord.api.entity.message.Message;
 import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.MessageDecoration;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
+import org.javacord.api.entity.user.User;
 
 import java.awt.*;
 import java.net.URL;
@@ -122,12 +123,17 @@ public class CoursesCommand implements CommandExecutor {
     }
 
     @Command(aliases = {"!begin"}, async = true, description = "Get lectures for current week.")
-    public void onMessageCreate(TextChannel channel, Message message) {
-        var param = Arrays.asList(message.getContent().split(" "));
-        if (param.size() == 2) {
-            execute(channel, param.get(1));
+    public void onMessageCreate(TextChannel channel, Message message, User user) {
+        if (user.isBotOwner()) {
+            var param = Arrays.asList(message.getContent().split(" "));
+            if (param.size() == 2) {
+                execute(channel, param.get(1));
+            } else {
+                channel.sendMessage("Bitte einen Kursnamen eingeben.");
+            }
         } else {
-            channel.sendMessage("Bitte einen Kursnamen eingeben.");
+            channel.sendMessage("Nur der Botowner kann den Command benutzen. Sorry \uD83D\uDE22");
         }
+
     }
 }
