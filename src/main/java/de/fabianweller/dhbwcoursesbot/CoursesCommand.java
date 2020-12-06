@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 public class CoursesCommand implements CommandExecutor {
 
-    private static final List<String> courseNames = List.of("INF20A", "INF20B");
     private static final String baseURL = "https://stuv-mosbach.de/survival/api.php?action=getLectures&course=";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
 
@@ -39,62 +38,67 @@ public class CoursesCommand implements CommandExecutor {
         while (true) {
             try {
                 var today = LocalDate.now();
-            var day = today.getDayOfWeek();
-                var startOfWeek = today.with(DayOfWeek.MONDAY);
+                var day = today.getDayOfWeek();
 
-            // Don't process same day again
-            if (!day.equals(processedDay) || firstRun) {
-                // Get lectures from API and deserialize them
-                var lectureData = new ObjectMapper()
-                        .readValue(new URL(baseURL + course), new TypeReference<List<Lecture>>() {
-                        });
-
-                if (lectureData.isEmpty()) {
-                    channel.sendMessage("Kurs nicht gefunden.");
+                // First run needs to start at sunday, if not sunday use sunday of last week
+                if (firstRun) {
+                    if (!day.equals(DayOfWeek.SUNDAY)) {
+                        today = today.with(DayOfWeek.SUNDAY).minusWeeks(1L);
+                    }
                 }
 
-                // Filter data
-                lectureData = lectureData.stream()
-                        .filter(data -> data.getStartDate().isAfter(startOfWeek.minusDays(1L)))
-                        .filter(data -> data.getStartDate().isBefore(startOfWeek.plusWeeks(1L)))
-                        .collect(Collectors.toList());
+                // Don't process same day again
+                if (!day.equals(processedDay) || firstRun) {
+                    // Get lectures from API and deserialize them
+                    var lectureData = new ObjectMapper()
+                            .readValue(new URL(baseURL + course), new TypeReference<List<Lecture>>() {});
 
-                // Create new message for new weeks
-                if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
+                    if (lectureData.isEmpty()) {
+                        channel.sendMessage("Kurs nicht gefunden.");
+                    }
 
-                    MessageBuilder messageToSend = createMessage(today, lectureData);
+                    // Filter data
+                    LocalDate finalToday = today;
+                    lectureData = lectureData.stream()
+                            .filter(data -> data.getStartDate().isAfter(finalToday.minusDays(1L)))
+                            .filter(data -> data.getStartDate().isBefore(finalToday.plusWeeks(1L)))
+                            .collect(Collectors.toList());
 
-                    channel.sendMessage(new EmbedBuilder()
-                            .setTitle(course)
-                            .setDescription("Zeitraum: " + startOfWeek.toString() + " bis " + today.plusDays(5))
-                            .setColor(Color.GREEN));
+                    // Create new message for new weeks
+                    if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
 
-                    message = messageToSend.send(channel);
+                        MessageBuilder messageToSend = createWeekMessage(lectureData);
 
-                    processedDay = day;
-                    firstRun = false;
-                } else {
-                    // Edit message
-                    if (Objects.nonNull(message)) {
-                        message.get().delete();
+                        channel.sendMessage(new EmbedBuilder()
+                                .setTitle(course)
+                                .setDescription("Zeitraum: " + today.plusDays(1L).toString() + " bis " + today.plusDays(5L))
+                                .setColor(Color.GREEN));
+
+                        message = messageToSend.send(channel);
+
+                        processedDay = day;
+                        firstRun = false;
+                    } else {
+                        // Edit message
+                        if (Objects.nonNull(message)) {
+                            message.get().delete();
+                        }
                         message = createMessage(today, lectureData).send(channel);
                         processedDay = day;
                     }
                 }
-            }
-                TimeUnit.HOURS.sleep(2); // Sleep two hours
+                TimeUnit.HOURS.sleep(2);
 
             } catch (Exception e) {
                 channel.sendMessage("An unexpected error occured. \n Message: \n " + e.getMessage());
                 return;
             }
         }
-
     }
 
-    private MessageBuilder createMessage(LocalDate today, List<Lecture> lectureData) {
+    private MessageBuilder createWeekMessage(List<Lecture> lectureData) {
         var messageToSend = new MessageBuilder();
-        final LocalDate[] currDate = {today};
+        final LocalDate[] currDate = { lectureData.get(0).getStartDate() };
 
         lectureData.forEach(lecture -> {
             // Add additional blank line if new day
@@ -103,22 +107,33 @@ public class CoursesCommand implements CommandExecutor {
                 currDate[0] = lecture.getStartDate();
             }
 
-            // Highlight if today
-            if (lecture.getStartDate().isEqual(today)) {
-                messageToSend.append(lecture.getStartDate().format(formatter) + "     "
-                        + lecture.getStartTime() + " - "
-                        + lecture.getEndTime() + "     "
-                        + lecture.getName(), MessageDecoration.BOLD)
-                        .appendNewLine();
-            } else {
-                messageToSend.append(lecture.getStartDate().format(formatter) + "     "
-                        + lecture.getStartTime() + " - "
-                        + lecture.getEndTime() + "     "
-                        + lecture.getName())
-                        .appendNewLine();
-            }
-
+            messageToSend.append(lecture.getStartDate().format(formatter)
+                    + "     "
+                    + lecture.getStartTime() + " - "
+                    + lecture.getEndTime() + "     "
+                    + lecture.getName())
+                    .appendNewLine();
         });
+        return messageToSend;
+    }
+
+    private MessageBuilder createMessage(LocalDate today, List<Lecture> lectureData) {
+        var messageToSend = new MessageBuilder();
+        final List<Lecture> todayLectures = lectureData.stream()
+                .filter(data -> data.getStartDate().isEqual(today))
+                .collect(Collectors.toList());
+
+        if (todayLectures.isEmpty()) {
+            return messageToSend;
+        }
+
+        messageToSend.append("Heutige Vorlesung(en):", MessageDecoration.BOLD);
+        todayLectures.forEach(lecture -> messageToSend.append(lecture.getStartDate().format(formatter)
+                + "     "
+                + lecture.getStartTime() + " - "
+                + lecture.getEndTime() + "     "
+                + lecture.getName())
+            .appendNewLine());
         return messageToSend;
     }
 
@@ -134,6 +149,5 @@ public class CoursesCommand implements CommandExecutor {
         } else {
             channel.sendMessage("Nur der Botowner kann den Command benutzen. Sorry \uD83D\uDE22");
         }
-
     }
 }
