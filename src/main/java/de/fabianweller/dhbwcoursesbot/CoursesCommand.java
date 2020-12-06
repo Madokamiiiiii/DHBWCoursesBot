@@ -40,6 +40,13 @@ public class CoursesCommand implements CommandExecutor {
                 var today = LocalDate.now();
                 var day = today.getDayOfWeek();
 
+                // First run needs to start at sunday, if not sunday use sunday of last week
+                if (firstRun) {
+                    if (!day.equals(DayOfWeek.SUNDAY)) {
+                        today = today.with(DayOfWeek.SUNDAY).minusWeeks(1L);
+                    }
+                }
+
                 // Don't process same day again
                 if (!day.equals(processedDay) || firstRun) {
                     // Get lectures from API and deserialize them
@@ -51,19 +58,20 @@ public class CoursesCommand implements CommandExecutor {
                     }
 
                     // Filter data
+                    LocalDate finalToday = today;
                     lectureData = lectureData.stream()
-                            .filter(data -> data.getStartDate().isAfter(today.minusDays(1L)))
-                            .filter(data -> data.getStartDate().isBefore(today.plusWeeks(1L)))
+                            .filter(data -> data.getStartDate().isAfter(finalToday.minusDays(1L)))
+                            .filter(data -> data.getStartDate().isBefore(finalToday.plusWeeks(1L)))
                             .collect(Collectors.toList());
 
                     // Create new message for new weeks
                     if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
 
-                        MessageBuilder messageToSend = createMessage(lectureData);
+                        MessageBuilder messageToSend = createWeekMessage(lectureData);
 
                         channel.sendMessage(new EmbedBuilder()
                                 .setTitle(course)
-                                .setDescription("Zeitraum: " + today.toString() + " bis " + today.plusDays(5))
+                                .setDescription("Zeitraum: " + today.plusDays(1L).toString() + " bis " + today.plusDays(5L))
                                 .setColor(Color.GREEN));
 
                         message = messageToSend.send(channel);
@@ -74,12 +82,12 @@ public class CoursesCommand implements CommandExecutor {
                         // Edit message
                         if (Objects.nonNull(message)) {
                             message.get().delete();
-                            message = createMessage(today, lectureData).send(channel);
-                            processedDay = day;
                         }
+                        message = createMessage(today, lectureData).send(channel);
+                        processedDay = day;
                     }
                 }
-                TimeUnit.HOURS.sleep(2); // Sleep two hours
+                TimeUnit.HOURS.sleep(2);
 
             } catch (Exception e) {
                 channel.sendMessage("An unexpected error occured. \n Message: \n " + e.getMessage());
@@ -88,7 +96,7 @@ public class CoursesCommand implements CommandExecutor {
         }
     }
 
-    private MessageBuilder createMessage(List<Lecture> lectureData) {
+    private MessageBuilder createWeekMessage(List<Lecture> lectureData) {
         var messageToSend = new MessageBuilder();
         final LocalDate[] currDate = { lectureData.get(0).getStartDate() };
 
@@ -114,13 +122,18 @@ public class CoursesCommand implements CommandExecutor {
         final List<Lecture> todayLectures = lectureData.stream()
                 .filter(data -> data.getStartDate().isEqual(today))
                 .collect(Collectors.toList());
+
+        if (todayLectures.isEmpty()) {
+            return messageToSend;
+        }
+
+        messageToSend.append("Heutige Vorlesung(en):", MessageDecoration.BOLD);
         todayLectures.forEach(lecture -> messageToSend.append(lecture.getStartDate().format(formatter)
                 + "     "
                 + lecture.getStartTime() + " - "
                 + lecture.getEndTime() + "     "
-                + lecture.getName(), MessageDecoration.BOLD)
+                + lecture.getName())
             .appendNewLine());
-
         return messageToSend;
     }
 
