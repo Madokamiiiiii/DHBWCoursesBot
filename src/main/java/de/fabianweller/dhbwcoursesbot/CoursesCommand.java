@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 public class CoursesCommand implements CommandExecutor {
 
-    private static final List<String> courseNames = List.of("INF20A", "INF20B");
     private static final String baseURL = "https://stuv-mosbach.de/survival/api.php?action=getLectures&course=";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
 
@@ -40,7 +39,6 @@ public class CoursesCommand implements CommandExecutor {
             try {
                 var today = LocalDate.now();
                 var day = today.getDayOfWeek();
-                var startOfWeek = today.with(DayOfWeek.MONDAY);
 
                 // Don't process same day again
                 if (!day.equals(processedDay) || firstRun) {
@@ -54,18 +52,18 @@ public class CoursesCommand implements CommandExecutor {
 
                     // Filter data
                     lectureData = lectureData.stream()
-                            .filter(data -> data.getStartDate().isAfter(startOfWeek.minusDays(1L)))
-                            .filter(data -> data.getStartDate().isBefore(startOfWeek.plusWeeks(1L)))
+                            .filter(data -> data.getStartDate().isAfter(today.minusDays(1L)))
+                            .filter(data -> data.getStartDate().isBefore(today.plusWeeks(1L)))
                             .collect(Collectors.toList());
 
                     // Create new message for new weeks
                     if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
 
-                        MessageBuilder messageToSend = createMessage(today, lectureData);
+                        MessageBuilder messageToSend = createMessage(lectureData);
 
                         channel.sendMessage(new EmbedBuilder()
                                 .setTitle(course)
-                                .setDescription("Zeitraum: " + startOfWeek.toString() + " bis " + today.plusDays(5))
+                                .setDescription("Zeitraum: " + today.toString() + " bis " + today.plusDays(5))
                                 .setColor(Color.GREEN));
 
                         message = messageToSend.send(channel);
@@ -88,12 +86,11 @@ public class CoursesCommand implements CommandExecutor {
                 return;
             }
         }
-
     }
 
-    private MessageBuilder createMessage(LocalDate today, List<Lecture> lectureData) {
+    private MessageBuilder createMessage(List<Lecture> lectureData) {
         var messageToSend = new MessageBuilder();
-        final LocalDate[] currDate = {today};
+        final LocalDate[] currDate = { lectureData.get(0).getStartDate() };
 
         lectureData.forEach(lecture -> {
             // Add additional blank line if new day
@@ -102,22 +99,28 @@ public class CoursesCommand implements CommandExecutor {
                 currDate[0] = lecture.getStartDate();
             }
 
-            // Highlight if today
-            if (lecture.getStartDate().isEqual(today)) {
-                messageToSend.append(lecture.getStartDate().format(formatter) + "     "
-                        + lecture.getStartTime() + " - "
-                        + lecture.getEndTime() + "     "
-                        + lecture.getName(), MessageDecoration.BOLD)
-                        .appendNewLine();
-            } else {
-                messageToSend.append(lecture.getStartDate().format(formatter) + "     "
-                        + lecture.getStartTime() + " - "
-                        + lecture.getEndTime() + "     "
-                        + lecture.getName())
-                        .appendNewLine();
-            }
-
+            messageToSend.append(lecture.getStartDate().format(formatter)
+                    + "     "
+                    + lecture.getStartTime() + " - "
+                    + lecture.getEndTime() + "     "
+                    + lecture.getName())
+                    .appendNewLine();
         });
+        return messageToSend;
+    }
+
+    private MessageBuilder createMessage(LocalDate today, List<Lecture> lectureData) {
+        var messageToSend = new MessageBuilder();
+        final List<Lecture> todayLectures = lectureData.stream()
+                .filter(data -> data.getStartDate().isEqual(today))
+                .collect(Collectors.toList());
+        todayLectures.forEach(lecture -> messageToSend.append(lecture.getStartDate().format(formatter)
+                + "     "
+                + lecture.getStartTime() + " - "
+                + lecture.getEndTime() + "     "
+                + lecture.getName(), MessageDecoration.BOLD)
+            .appendNewLine());
+
         return messageToSend;
     }
 
@@ -133,6 +136,5 @@ public class CoursesCommand implements CommandExecutor {
         } else {
             channel.sendMessage("Nur der Botowner kann den Command benutzen. Sorry \uD83D\uDE22");
         }
-
     }
 }
