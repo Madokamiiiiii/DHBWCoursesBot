@@ -39,49 +39,48 @@ public class CoursesCommand implements CommandExecutor {
         while (true) {
             try {
                 var today = LocalDate.now();
-            var day = today.getDayOfWeek();
+                var day = today.getDayOfWeek();
                 var startOfWeek = today.with(DayOfWeek.MONDAY);
 
-            // Don't process same day again
-            if (!day.equals(processedDay) || firstRun) {
-                // Get lectures from API and deserialize them
-                var lectureData = new ObjectMapper()
-                        .readValue(new URL(baseURL + course), new TypeReference<List<Lecture>>() {
-                        });
+                // Don't process same day again
+                if (!day.equals(processedDay) || firstRun) {
+                    // Get lectures from API and deserialize them
+                    var lectureData = new ObjectMapper()
+                            .readValue(new URL(baseURL + course), new TypeReference<List<Lecture>>() {});
 
-                if (lectureData.isEmpty()) {
-                    channel.sendMessage("Kurs nicht gefunden.");
-                }
+                    if (lectureData.isEmpty()) {
+                        channel.sendMessage("Kurs nicht gefunden.");
+                    }
 
-                // Filter data
-                lectureData = lectureData.stream()
-                        .filter(data -> data.getStartDate().isAfter(startOfWeek.minusDays(1L)))
-                        .filter(data -> data.getStartDate().isBefore(startOfWeek.plusWeeks(1L)))
-                        .collect(Collectors.toList());
+                    // Filter data
+                    lectureData = lectureData.stream()
+                            .filter(data -> data.getStartDate().isAfter(startOfWeek.minusDays(1L)))
+                            .filter(data -> data.getStartDate().isBefore(startOfWeek.plusWeeks(1L)))
+                            .collect(Collectors.toList());
 
-                // Create new message for new weeks
-                if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
+                    // Create new message for new weeks
+                    if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
 
-                    MessageBuilder messageToSend = createMessage(today, lectureData);
+                        MessageBuilder messageToSend = createMessage(today, lectureData);
 
-                    channel.sendMessage(new EmbedBuilder()
-                            .setTitle(course)
-                            .setDescription("Zeitraum: " + startOfWeek.toString() + " bis " + today.plusDays(5))
-                            .setColor(Color.GREEN));
+                        channel.sendMessage(new EmbedBuilder()
+                                .setTitle(course)
+                                .setDescription("Zeitraum: " + startOfWeek.toString() + " bis " + today.plusDays(5))
+                                .setColor(Color.GREEN));
 
-                    message = messageToSend.send(channel);
+                        message = messageToSend.send(channel);
 
-                    processedDay = day;
-                    firstRun = false;
-                } else {
-                    // Edit message
-                    if (Objects.nonNull(message)) {
-                        message.get().delete();
-                        message = createMessage(today, lectureData).send(channel);
                         processedDay = day;
+                        firstRun = false;
+                    } else {
+                        // Edit message
+                        if (Objects.nonNull(message)) {
+                            message.get().delete();
+                            message = createMessage(today, lectureData).send(channel);
+                            processedDay = day;
+                        }
                     }
                 }
-            }
                 TimeUnit.HOURS.sleep(2); // Sleep two hours
 
             } catch (Exception e) {
