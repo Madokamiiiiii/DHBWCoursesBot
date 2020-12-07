@@ -74,7 +74,8 @@ public class CoursesCommand implements CommandExecutor {
                                 .setDescription("Zeitraum: " + today.plusDays(1L).toString() + " bis " + today.plusDays(5L))
                                 .setColor(Color.GREEN));
 
-                        message = messageToSend.send(channel);
+                        messageToSend.send(channel);
+                        message = null;
 
                         processedDay = day;
                         firstRun = false;
@@ -127,13 +128,16 @@ public class CoursesCommand implements CommandExecutor {
             return messageToSend;
         }
 
-        messageToSend.append("Heutige Vorlesung(en):", MessageDecoration.BOLD);
+        messageToSend
+                .append("Heutige Vorlesung(en):", MessageDecoration.BOLD)
+                .appendNewLine();
+
         todayLectures.forEach(lecture -> messageToSend.append(lecture.getStartDate().format(formatter)
                 + "     "
                 + lecture.getStartTime() + " - "
                 + lecture.getEndTime() + "     "
                 + lecture.getName())
-            .appendNewLine());
+                .appendNewLine());
         return messageToSend;
     }
 
