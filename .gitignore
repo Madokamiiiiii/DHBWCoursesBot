@@ -4,3 +4,6 @@
 /.gradle/6.5.1/fileContent/fileContent.lock
 /.gradle/6.5.1/fileHashes/fileHashes.lock
 /.gradle/6.5.1/javaCompile/javaCompile.lock
+/.gradle/*
+/.idea/*
+/build/*
