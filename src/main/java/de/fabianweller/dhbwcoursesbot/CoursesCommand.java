@@ -64,17 +64,29 @@ public class CoursesCommand implements CommandExecutor {
                             .filter(data -> data.getStartDate().isBefore(finalToday.plusWeeks(1L)))
                             .collect(Collectors.toList());
 
+                    // Don't do anything if a week has no lectures.
+                    if (lectureData.isEmpty()) {
+                        TimeUnit.DAYS.sleep(1);
+                        continue;
+                    }
+
                     // Create new message for new weeks
                     if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
 
                         MessageBuilder messageToSend = createWeekMessage(lectureData);
 
-                        channel.sendMessage(new EmbedBuilder()
-                                .setTitle(course)
-                                .setDescription("Zeitraum: " + today.plusDays(1L).toString() + " bis " + today.plusDays(5L))
-                                .setColor(Color.GREEN));
+                        try {
+                            channel.sendMessage(new EmbedBuilder()
+                                    .setTitle(course)
+                                    .setDescription("Zeitraum: " + today.plusDays(1L).toString() + " bis " + today.plusDays(5L))
+                                    .setColor(Color.GREEN));
 
-                        messageToSend.send(channel);
+                            messageToSend.send(channel);
+                        } catch (Exception e) {
+                            // Week has no lectures (yes, the check above should already prevent this. But better safe than sorry)
+                            System.out.println(e.getMessage());
+                        }
+
                         message = null;
 
                         processedDay = day;
@@ -125,7 +137,7 @@ public class CoursesCommand implements CommandExecutor {
                 .collect(Collectors.toList());
 
         if (todayLectures.isEmpty()) {
-            return messageToSend;
+            return null;
         }
 
         messageToSend
