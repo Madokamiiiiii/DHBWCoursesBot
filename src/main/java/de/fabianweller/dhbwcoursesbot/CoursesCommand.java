@@ -28,13 +28,12 @@ public class CoursesCommand implements CommandExecutor {
     private static final String baseURL = "https://stuv-mosbach.de/survival/api.php?action=getLectures&course=";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
 
-    public void execute(TextChannel channel, String course) {
-
-        // Initialize
-        var firstRun = true;
-        CompletableFuture<Message> message = null;
+    public void init(TextChannel channel, String course) {
         var processedDay = DayOfWeek.MONDAY;
+        execute(channel, course, processedDay, null, true);
+    }
 
+    public void execute(TextChannel channel, String course, DayOfWeek processedDay, CompletableFuture<Message> message, boolean firstRun) {
         while (true) {
             try {
                 var today = LocalDate.now();
@@ -84,7 +83,7 @@ public class CoursesCommand implements CommandExecutor {
                             messageToSend.send(channel);
                         } catch (Exception e) {
                             // Week has no lectures (yes, the check above should already prevent this. But better safe than sorry)
-                            System.out.println(e.getMessage());
+                            System.out.println(e.toString());
                         }
 
                         message = null;
@@ -96,15 +95,18 @@ public class CoursesCommand implements CommandExecutor {
                         if (Objects.nonNull(message)) {
                             message.get().delete();
                         }
-                        message = createMessage(today, lectureData).send(channel);
+                        var messageToSend = createMessage(today, lectureData);
+                        if (Objects.nonNull(messageToSend)) {
+                            message = messageToSend.send(channel);
+                        }
                         processedDay = day;
                     }
                 }
                 TimeUnit.HOURS.sleep(2);
 
             } catch (Exception e) {
-                channel.sendMessage("An unexpected error occured. \n Message: \n " + e.getMessage());
-                return;
+                channel.sendMessage("An unexpected error occured. \n Message: \n " + e.toString());
+                channel.sendMessage("Terminating.");
             }
         }
     }
@@ -158,7 +160,7 @@ public class CoursesCommand implements CommandExecutor {
         if (user.isBotOwner()) {
             var param = Arrays.asList(message.getContent().split(" "));
             if (param.size() == 2) {
-                execute(channel, param.get(1));
+                init(channel, param.get(1));
             } else {
                 channel.sendMessage("Bitte einen Kursnamen eingeben.");
             }
