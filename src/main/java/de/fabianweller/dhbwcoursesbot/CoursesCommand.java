@@ -54,6 +54,7 @@ public class CoursesCommand implements CommandExecutor {
 
                     if (lectureData.isEmpty()) {
                         channel.sendMessage("Kurs nicht gefunden.");
+                        return;
                     }
 
                     // Filter data
@@ -63,11 +64,6 @@ public class CoursesCommand implements CommandExecutor {
                             .filter(data -> data.getStartDate().isBefore(finalToday.plusWeeks(1L)))
                             .collect(Collectors.toList());
 
-                    // Don't do anything if a week has no lectures.
-                    if (lectureData.isEmpty()) {
-                        TimeUnit.DAYS.sleep(1);
-                        continue;
-                    }
 
                     // Create new message for new weeks
                     if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
@@ -91,6 +87,14 @@ public class CoursesCommand implements CommandExecutor {
                         processedDay = day;
                         firstRun = false;
                     } else {
+                        // Don't do anything if a week has no lectures.
+                        if (lectureData.isEmpty()) {
+                            if (Objects.nonNull(message)) {
+                                message.get().delete();
+                            }
+                            TimeUnit.HOURS.sleep(6);
+                            continue;
+                        }
                         // Edit message
                         if (Objects.nonNull(message)) {
                             message.get().delete();
