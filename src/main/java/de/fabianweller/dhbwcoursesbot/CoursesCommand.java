@@ -9,6 +9,7 @@ import org.javacord.api.entity.message.Message;
 import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.MessageDecoration;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
+import org.javacord.api.entity.permission.PermissionType;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.entity.user.User;
 
@@ -162,7 +163,7 @@ public class CoursesCommand implements CommandExecutor {
 
     @Command(aliases = {"!begin"}, async = true, description = "Get lectures for current week.")
     public void onMessageCreate(TextChannel channel, Message message, User user, Server server) {
-        if (server.isAdmin(user) || server.canBanUsers(user)) {
+        if (server.isAdmin(user) || server.hasAnyPermission(user, PermissionType.ADMINISTRATOR) || user.isBotOwner()) {
             var param = Arrays.asList(message.getContent().split(" "));
             if (param.size() == 2) {
                 init(channel, param.get(1));
@@ -170,7 +171,7 @@ public class CoursesCommand implements CommandExecutor {
                 channel.sendMessage("Bitte einen Kursnamen eingeben.");
             }
         } else {
-            channel.sendMessage("Nur ein Admin bzw. Moderatoren können den Command benutzen. Sorry \uD83D\uDE22");
+            channel.sendMessage("Nur ein Admin den Command benutzen. Sorry \uD83D\uDE22");
         }
     }
 }
