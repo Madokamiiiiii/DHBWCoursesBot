@@ -162,7 +162,7 @@ public class CoursesCommand implements CommandExecutor {
 
     @Command(aliases = {"!begin"}, async = true, description = "Get lectures for current week.")
     public void onMessageCreate(TextChannel channel, Message message, User user, Server server) {
-        if (server.isAdmin(user)) {
+        if (server.isAdmin(user) || server.canBanUsers(user)) {
             var param = Arrays.asList(message.getContent().split(" "));
             if (param.size() == 2) {
                 init(channel, param.get(1));
@@ -170,7 +170,7 @@ public class CoursesCommand implements CommandExecutor {
                 channel.sendMessage("Bitte einen Kursnamen eingeben.");
             }
         } else {
-            channel.sendMessage("Nur ein Admin kann den Command benutzen. Sorry \uD83D\uDE22");
+            channel.sendMessage("Nur ein Admin bzw. Moderatoren können den Command benutzen. Sorry \uD83D\uDE22");
         }
     }
 }
