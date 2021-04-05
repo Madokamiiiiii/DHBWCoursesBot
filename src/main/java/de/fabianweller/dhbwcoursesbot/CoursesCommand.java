@@ -23,12 +23,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class CoursesCommand implements CommandExecutor {
 
     private static final String baseURL = "https://stuv-mosbach.de/survival/api.php?action=getLectures&course=";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+    private static final Logger log = LogManager.getLogManager().getLogger("CoursesCommand");
 
     public void init(TextChannel channel, String course) {
         var processedDay = DayOfWeek.MONDAY;
@@ -65,6 +68,12 @@ public class CoursesCommand implements CommandExecutor {
                             .filter(data -> data.getStartDate().isAfter(finalToday.minusDays(1L)))
                             .filter(data -> data.getStartDate().isBefore(finalToday.plusWeeks(1L)))
                             .collect(Collectors.toList());
+
+                    if (lectureData.isEmpty()) {
+                        TimeUnit.MINUTES.sleep(30);
+                        log.info("No courses found for week with day " + finalToday);
+                        continue;
+                    }
 
 
                     // Create new message for new weeks
@@ -113,6 +122,10 @@ public class CoursesCommand implements CommandExecutor {
             } catch (Exception e) {
                 channel.sendMessage("An unexpected error occured. \n Message: \n " + e.toString());
                 channel.sendMessage("Terminating.");
+                log.severe("An unexpected error occured.");
+                log.severe(e.toString());
+                log.severe(e.getCause().toString());
+                return;
             }
         }
     }
