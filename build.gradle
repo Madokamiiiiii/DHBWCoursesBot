@@ -10,7 +10,7 @@ jar {
     }
 }
 group 'de.fabianweller.dhbwcoursesbot'
-version 'v1'
+version 'v2'
 apply plugin: 'java'
 mainClassName = 'de.fabianweller.dhbwcoursesbot.DHBWCoursesBot'
 

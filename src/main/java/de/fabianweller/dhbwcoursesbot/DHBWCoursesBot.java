@@ -1,7 +1,11 @@
 package de.fabianweller.dhbwcoursesbot;
 
 import de.btobastian.sdcf4j.handler.JavacordHandler;
+import de.fabianweller.dhbwcoursesbot.Commands.CoursesCommand;
+import de.fabianweller.dhbwcoursesbot.Commands.FutureCommand;
 import org.javacord.api.DiscordApiBuilder;
+
+
 
 public class DHBWCoursesBot {
 
@@ -13,6 +17,7 @@ public class DHBWCoursesBot {
 
         final var handler = new JavacordHandler(api);
         handler.registerCommand(new CoursesCommand());
+        handler.registerCommand(new FutureCommand());
 
     }
 }

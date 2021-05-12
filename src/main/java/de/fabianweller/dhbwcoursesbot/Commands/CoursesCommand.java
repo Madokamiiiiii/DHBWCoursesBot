@@ -1,23 +1,20 @@
-package de.fabianweller.dhbwcoursesbot;
+package de.fabianweller.dhbwcoursesbot.Commands;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import de.btobastian.sdcf4j.Command;
 import de.btobastian.sdcf4j.CommandExecutor;
+import de.fabianweller.dhbwcoursesbot.Lecture;
+import de.fabianweller.dhbwcoursesbot.LectureData;
 import org.javacord.api.entity.channel.TextChannel;
 import org.javacord.api.entity.message.Message;
 import org.javacord.api.entity.message.MessageBuilder;
-import org.javacord.api.entity.message.MessageDecoration;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.entity.permission.PermissionType;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.entity.user.User;
 
 import java.awt.*;
-import java.net.URL;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -25,12 +22,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class CoursesCommand implements CommandExecutor {
 
-    private static final String baseURL = "https://stuv-mosbach.de/survival/api.php?action=getLectures&course=";
-    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
     private static final Logger log = LogManager.getLogManager().getLogger("CoursesCommand");
 
     public void init(TextChannel channel, String course) {
@@ -53,33 +47,26 @@ public class CoursesCommand implements CommandExecutor {
 
                 // Don't process same day again
                 if (!day.equals(processedDay) || firstRun) {
+                    List<Lecture> lectureData;
                     // Get lectures from API and deserialize them
-                    var lectureData = new ObjectMapper()
-                            .readValue(new URL(baseURL + course), new TypeReference<List<Lecture>>() {});
-
-                    if (lectureData.isEmpty()) {
+                    try {
+                        lectureData = LectureData.getLectureData(course, today, 1);
+                    } catch (Exception e) {
                         channel.sendMessage("Kurs nicht gefunden.");
                         return;
                     }
 
-                    // Filter data
-                    LocalDate finalToday = today;
-                    lectureData = lectureData.stream()
-                            .filter(data -> data.getStartDate().isAfter(finalToday.minusDays(1L)))
-                            .filter(data -> data.getStartDate().isBefore(finalToday.plusWeeks(1L)))
-                            .collect(Collectors.toList());
-
                     if (lectureData.isEmpty()) {
                         TimeUnit.MINUTES.sleep(30);
-                        log.info("No courses found for week with day " + finalToday);
+                        log.info("No lectures found for week with day " + today);
                         continue;
                     }
 
 
                     // Create new message for new weeks
-                    if (firstRun || day.equals(DayOfWeek.SUNDAY)) {
+                    if (firstRun || day.equals(DayOfWeek.SATURDAY)) {
 
-                        MessageBuilder messageToSend = createWeekMessage(lectureData);
+                        MessageBuilder messageToSend = LectureData.createWeekMessage(lectureData);
 
                         try {
                             channel.sendMessage(new EmbedBuilder()
@@ -98,19 +85,11 @@ public class CoursesCommand implements CommandExecutor {
                         processedDay = day;
                         firstRun = false;
                     } else {
-                        // Don't do anything if a week has no lectures.
-                        if (lectureData.isEmpty()) {
-                            if (Objects.nonNull(message)) {
-                                message.get().delete();
-                            }
-                            TimeUnit.HOURS.sleep(6);
-                            continue;
-                        }
                         // Edit message
                         if (Objects.nonNull(message)) {
                             message.get().delete();
                         }
-                        var messageToSend = createMessage(today, lectureData);
+                        var messageToSend = LectureData.createMessage(today, lectureData);
                         if (Objects.nonNull(messageToSend)) {
                             message = messageToSend.send(channel);
                         }
@@ -130,51 +109,7 @@ public class CoursesCommand implements CommandExecutor {
         }
     }
 
-    private MessageBuilder createWeekMessage(List<Lecture> lectureData) {
-        var messageToSend = new MessageBuilder();
-        final LocalDate[] currDate = { lectureData.get(0).getStartDate() };
-
-        lectureData.forEach(lecture -> {
-            // Add additional blank line if new day
-            if (!lecture.getStartDate().isEqual(currDate[0])) {
-                messageToSend.appendNewLine();
-                currDate[0] = lecture.getStartDate();
-            }
-
-            messageToSend.append(lecture.getStartDate().format(formatter)
-                    + "     "
-                    + lecture.getStartTime() + " - "
-                    + lecture.getEndTime() + "     "
-                    + lecture.getName())
-                    .appendNewLine();
-        });
-        return messageToSend;
-    }
-
-    private MessageBuilder createMessage(LocalDate today, List<Lecture> lectureData) {
-        var messageToSend = new MessageBuilder();
-        final List<Lecture> todayLectures = lectureData.stream()
-                .filter(data -> data.getStartDate().isEqual(today))
-                .collect(Collectors.toList());
-
-        if (todayLectures.isEmpty()) {
-            return null;
-        }
-
-        messageToSend
-                .append("Heutige Vorlesung(en):", MessageDecoration.BOLD)
-                .appendNewLine();
-
-        todayLectures.forEach(lecture -> messageToSend.append(lecture.getStartDate().format(formatter)
-                + "     "
-                + lecture.getStartTime() + " - "
-                + lecture.getEndTime() + "     "
-                + lecture.getName())
-                .appendNewLine());
-        return messageToSend;
-    }
-
-    @Command(aliases = {"!begin"}, async = true, description = "Get lectures for current week.")
+    @Command(aliases = {"/begin"}, async = true, description = "Get lectures for current week.", usage = "Provide the course name to start the listener.")
     public void onMessageCreate(TextChannel channel, Message message, User user, Server server) {
         if (server.isAdmin(user) || server.hasAnyPermission(user, PermissionType.ADMINISTRATOR) || user.isBotOwner()) {
             var param = Arrays.asList(message.getContent().split(" "));
