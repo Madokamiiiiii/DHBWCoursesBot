@@ -10,6 +10,10 @@ import org.javacord.api.DiscordApiBuilder;
 public class DHBWCoursesBot {
 
     public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("No Bot-Token provided. Exiting.");
+            return;
+        }
 
         final var api = new DiscordApiBuilder().setToken(args[0])
                 .login().join();

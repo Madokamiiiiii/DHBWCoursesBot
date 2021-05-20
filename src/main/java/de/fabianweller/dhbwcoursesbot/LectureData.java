@@ -46,7 +46,7 @@ public class LectureData {
                     + "     "
                     + lecture.getStartTime() + " - "
                     + lecture.getEndTime() + "     "
-                    + lecture.getName())
+                    + (lecture.getName().equals("Prakt. Datenverarbeitung") ? "PDA (Praktische Datenarbeitung)" : lecture.getName()))
                     .appendNewLine();
         });
         return messageToSend;
@@ -70,7 +70,7 @@ public class LectureData {
                 + "     "
                 + lecture.getStartTime() + " - "
                 + lecture.getEndTime() + "     "
-                + lecture.getName())
+                + (lecture.getName().equals("Prakt. Datenverarbeitung") ? "PDA (Praktische Datenarbeitung)" : lecture.getName()))
                 .appendNewLine());
         return messageToSend;
     }
