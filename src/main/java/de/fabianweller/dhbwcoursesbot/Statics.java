@@ -1,10 +1,18 @@
 package de.fabianweller.dhbwcoursesbot;
 
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.logging.LogManager;
-import java.util.logging.Logger;
+import java.util.Locale;
 
 public class Statics {
-    public static final String baseURL = "https://stuv-mosbach.de/survival/api.php?action=getLectures&course=";
-    public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+    private Statics() {}
+    public static final String BASE_URL = "https://stuv.hardtke.host/rapla/lectures/";
+    public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM")
+            .withLocale(Locale.GERMAN)
+            .withZone(ZoneId.systemDefault());
+
+    public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
+            .withLocale(Locale.GERMAN)
+            .withZone(ZoneId.systemDefault());
+
 }

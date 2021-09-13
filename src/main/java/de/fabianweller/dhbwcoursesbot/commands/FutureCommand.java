@@ -1,4 +1,4 @@
-package de.fabianweller.dhbwcoursesbot.Commands;
+package de.fabianweller.dhbwcoursesbot.commands;
 
 import de.btobastian.sdcf4j.Command;
 import de.btobastian.sdcf4j.CommandExecutor;
@@ -10,9 +10,11 @@ import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.entity.user.User;
 
-import java.awt.*;
+import java.awt.Color;
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.LogManager;
@@ -23,7 +25,7 @@ public class FutureCommand implements CommandExecutor {
 
     private static final Logger log = LogManager.getLogManager().getLogger("FutureCommand");
 
-    @Command(aliases = {"/future"}, async = true, description = "Get lectures for course x the next y weeks.", usage = "Gets lectures for course x for the next y weeks. Default: y = 2. /future INF20A 2")
+    @Command(aliases = {"!future"}, async = true, description = "Get lectures for course x the next y weeks.", usage = "Gets lectures for course x for the next y weeks. Default: y = 2. /future INF20A 2")
     public void onMessageCreate(TextChannel channel, Message message, User user, Server server) {
         var param = Arrays.asList(message.getContent().split(" "));
         if (param.size() == 2) {
@@ -43,7 +45,7 @@ public class FutureCommand implements CommandExecutor {
     }
 
     private void createMessage(TextChannel channel, String course, int time) {
-        var today = LocalDate.now().with(DayOfWeek.MONDAY).plusDays(6L);
+        var today = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
         List<Lecture> lectureData;
         // Get lectures from API and deserialize them
         try {
@@ -59,13 +61,14 @@ public class FutureCommand implements CommandExecutor {
 
         channel.sendMessage(new EmbedBuilder()
                 .setTitle(course)
-                .setDescription("Zeitraum: " + today.toString() + " bis " + today.plusWeeks(time).minusDays(3L))
+                .setDescription("Zeitraum: " + today.toString() + " bis " + today.plus(Duration.ofDays(time * 7L - 3L)))
                 .setColor(Color.GREEN));
 
         for (int i = 1; i <= time; i++) {
             int finalI = i;
             var messageToSend = LectureData.createWeekMessage(lectureData.stream()
-                    .filter(lecture -> lecture.getStartDate().isBefore(today.plusWeeks(finalI)) && lecture.getStartDate().isAfter(today.plusWeeks(finalI - 1)))
+                    .filter(lecture -> lecture.getDate().isBefore(today.plus(Duration.ofDays(finalI * 7L)))
+                            && lecture.getDate().isAfter(today.plus(Duration.ofDays((finalI - 1L) * 7L))))
                     .collect(Collectors.toList()));
             if (i != time) {
                 messageToSend.append("---------------------\n");

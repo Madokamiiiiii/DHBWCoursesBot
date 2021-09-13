@@ -1,7 +1,9 @@
-package de.fabianweller.dhbwcoursesbot.Commands;
+package de.fabianweller.dhbwcoursesbot.commands;
 
 import de.btobastian.sdcf4j.Command;
 import de.btobastian.sdcf4j.CommandExecutor;
+import de.fabianweller.dhbwcoursesbot.exceptions.BadEndpointException;
+import de.fabianweller.dhbwcoursesbot.exceptions.NoSuchCourseException;
 import de.fabianweller.dhbwcoursesbot.Lecture;
 import de.fabianweller.dhbwcoursesbot.LectureData;
 import org.javacord.api.entity.channel.TextChannel;
@@ -12,9 +14,9 @@ import org.javacord.api.entity.permission.PermissionType;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.entity.user.User;
 
-import java.awt.*;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
+import java.awt.Color;
+import java.time.*;
+import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -40,9 +42,7 @@ public class CoursesCommand implements CommandExecutor {
 
                 // First run needs to start at sunday, if not sunday use sunday of last week
                 if (firstRun) {
-                    if (!day.equals(DayOfWeek.SUNDAY)) {
-                        today = today.with(DayOfWeek.SUNDAY).minusWeeks(1L);
-                    }
+                    today = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
                 }
 
                 // Don't process same day again
@@ -51,34 +51,26 @@ public class CoursesCommand implements CommandExecutor {
                     // Get lectures from API and deserialize them
                     try {
                         lectureData = LectureData.getLectureData(course, today, 1);
-                    } catch (Exception e) {
-                        channel.sendMessage("Kurs nicht gefunden.");
+                    } catch (BadEndpointException e) {
+                        channel.sendMessage("Endpunkt ist down :( \n Ich versuche es in 15 Minuten erneut.");
+                        TimeUnit.MINUTES.sleep(15);
+                        continue;
+                    } catch (NoSuchCourseException e) {
+                        channel.sendMessage("Der Kurs wurde nicht gefunden");
                         return;
                     }
-
-                    if (lectureData.isEmpty()) {
-                        TimeUnit.MINUTES.sleep(30);
-                        log.info("No lectures found for week with day " + today);
-                        continue;
-                    }
-
 
                     // Create new message for new weeks
                     if (firstRun || day.equals(DayOfWeek.SATURDAY)) {
 
                         MessageBuilder messageToSend = LectureData.createWeekMessage(lectureData);
 
-                        try {
                             channel.sendMessage(new EmbedBuilder()
                                     .setTitle(course)
-                                    .setDescription("Zeitraum: " + today.plusDays(1L).toString() + " bis " + today.plusDays(5L))
+                                    .setDescription("Zeitraum: " + today.plus(Period.ofDays(1)).toString() + " bis " + today.plus(Period.ofDays(5)))
                                     .setColor(Color.GREEN));
 
                             messageToSend.send(channel);
-                        } catch (Exception e) {
-                            // Week has no lectures (yes, the check above should already prevent this. But better safe than sorry)
-                            System.out.println(e.toString());
-                        }
 
                         message = null;
 
@@ -99,17 +91,17 @@ public class CoursesCommand implements CommandExecutor {
                 TimeUnit.HOURS.sleep(2);
 
             } catch (Exception e) {
-                channel.sendMessage("An unexpected error occured. \n Message: \n " + e.toString());
+                channel.sendMessage("An unexpected error occured. \n Message: \n " + e);
                 channel.sendMessage("Terminating.");
-                log.severe("An unexpected error occured.");
+                log.severe("An unexpected error occurred.");
                 log.severe(e.toString());
                 log.severe(e.getCause().toString());
-                return;
+                Thread.currentThread().interrupt();
             }
         }
     }
 
-    @Command(aliases = {"/begin"}, async = true, description = "Get lectures for current week.", usage = "Provide the course name to start the listener.")
+    @Command(aliases = {"!begin"}, async = true, description = "Get lectures for current week.", usage = "Provide the course name to start the listener.")
     public void onMessageCreate(TextChannel channel, Message message, User user, Server server) {
         if (server.isAdmin(user) || server.hasAnyPermission(user, PermissionType.ADMINISTRATOR) || user.isBotOwner()) {
             var param = Arrays.asList(message.getContent().split(" "));

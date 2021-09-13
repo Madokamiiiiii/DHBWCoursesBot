@@ -2,51 +2,63 @@ package de.fabianweller.dhbwcoursesbot;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.fabianweller.dhbwcoursesbot.exceptions.BadEndpointException;
+import de.fabianweller.dhbwcoursesbot.exceptions.NoSuchCourseException;
 import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.MessageDecoration;
 
 import java.net.URL;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import static de.fabianweller.dhbwcoursesbot.Statics.baseURL;
+import static de.fabianweller.dhbwcoursesbot.Statics.BASE_URL;
 
 public class LectureData {
-    public static List<Lecture> getLectureData(String course, LocalDate today, int time) throws Exception {
+
+    private LectureData() {}
+
+    public static List<Lecture> getLectureData(String course, LocalDate today, int time) throws BadEndpointException, NoSuchCourseException {
+
+        List<Lecture> lectureData;
+
         // Get lectures from API and deserialize them
-        var lectureData = new ObjectMapper()
-                .readValue(new URL(baseURL + course), new TypeReference<List<Lecture>>() {});
+        try {
+            lectureData = new ObjectMapper()
+                    .readValue(new URL(BASE_URL + course), new TypeReference<>() {});
+        } catch (Exception e) {
+            throw new BadEndpointException();
+        }
 
         if (lectureData.isEmpty()) {
-            throw new Exception("Course not found");
+            throw new NoSuchCourseException();
         }
 
         // Filter data
         return lectureData.stream()
-                .filter(data -> data.getStartDate().isAfter(today.minusDays(1L)))
-                .filter(data -> data.getStartDate().isBefore(today.plusWeeks(time)))
+                .filter(data -> data.getDate().isAfter(today.minus(Period.ofDays(1))))
+                .filter(data -> data.getDate().isBefore(today.plus(Period.ofDays(time * 7))))
                 .collect(Collectors.toList());
     }
 
     public static MessageBuilder createWeekMessage(List<Lecture> lectureData) {
         var messageToSend = new MessageBuilder();
-        final LocalDate[] currDate = { lectureData.get(0).getStartDate() };
+        final LocalDate[] currDate = { lectureData.get(0).getDate() };
 
         lectureData.forEach(lecture -> {
             // Add additional blank line if new day
-            if (!lecture.getStartDate().isEqual(currDate[0])) {
+            if (!lecture.getDate().equals(currDate[0])) {
                 messageToSend.appendNewLine();
-                currDate[0] = lecture.getStartDate();
+                currDate[0] = lecture.getDate();
             }
 
-            messageToSend.append(lecture.getStartDate().format(Statics.formatter)
+            messageToSend.append(Statics.DATE_FORMATTER.format(lecture.getDate())
                     + "     "
-                    + lecture.getStartTime() + " - "
-                    + lecture.getEndTime() + "     "
-                    + (lecture.getName().equals("Prakt. Datenverarbeitung") ? "PDA (Praktische Datenarbeitung)" : lecture.getName()))
+                    + Statics.TIME_FORMATTER.format(lecture.getStartTime()) + " - "
+                    + Statics.TIME_FORMATTER.format(lecture.getEndTime()) + "   ---  "
+                    + lecture.getRooms() + "   "
+                    + lecture.getName())
                     .appendNewLine();
         });
         return messageToSend;
@@ -55,7 +67,7 @@ public class LectureData {
     public static MessageBuilder createMessage(LocalDate today, List<Lecture> lectureData) {
         var messageToSend = new MessageBuilder();
         final List<Lecture> todayLectures = lectureData.stream()
-                .filter(data -> data.getStartDate().isEqual(today))
+                .filter(data -> data.getDate().compareTo(today) == 0)
                 .collect(Collectors.toList());
 
         if (todayLectures.isEmpty()) {
@@ -66,11 +78,12 @@ public class LectureData {
                 .append("Heutige Vorlesung(en):", MessageDecoration.BOLD)
                 .appendNewLine();
 
-        todayLectures.forEach(lecture -> messageToSend.append(lecture.getStartDate().format(Statics.formatter)
+        todayLectures.forEach(lecture -> messageToSend.append(Statics.DATE_FORMATTER.format(lecture.getDate())
                 + "     "
-                + lecture.getStartTime() + " - "
-                + lecture.getEndTime() + "     "
-                + (lecture.getName().equals("Prakt. Datenverarbeitung") ? "PDA (Praktische Datenarbeitung)" : lecture.getName()))
+                + Statics.TIME_FORMATTER.format(lecture.getStartTime()) + " - "
+                + Statics.TIME_FORMATTER.format(lecture.getEndTime()) + "   ---  "
+                + lecture.getRooms() + "   "
+                + lecture.getName())
                 .appendNewLine());
         return messageToSend;
     }

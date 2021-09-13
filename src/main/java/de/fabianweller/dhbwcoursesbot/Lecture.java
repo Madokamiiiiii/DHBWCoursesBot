@@ -1,8 +1,9 @@
 package de.fabianweller.dhbwcoursesbot;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -14,113 +15,52 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-        "ID",
-        "course",
+        "id",
+        "date",
+        "startTime",
+        "endTime",
         "name",
-        "start_mysql",
-        "start_date",
-        "start_time",
-        "end_mysql",
-        "end_date",
-        "end_time",
-        "duration",
-        "today",
-        "over",
-        "allDayEvent",
-        "multipleDayEvent",
         "lecturer",
-        "location",
-        "lastModified_mysql"
+        "rooms"
 })
 public class Lecture {
 
-    @JsonProperty("course")
-    private String course;
     @JsonProperty("name")
     private String name;
+    @JsonDeserialize(using = Deserializer.DeserializeDateOnly.class)
+    @JsonProperty("date")
+    private LocalDate date;
     @JsonDeserialize(using = Deserializer.DeserializeDate.class)
-    @JsonProperty("start_date")
-    private LocalDate startDate;
-    @JsonDeserialize(using = Deserializer.DeserializeTime.class)
-    @JsonProperty("start_time")
-    private LocalTime startTime;
+    @JsonProperty("startTime")
+    private Instant startTime;
     @JsonDeserialize(using = Deserializer.DeserializeDate.class)
-    @JsonProperty("end_date")
-    private LocalDate endDate;
-    @JsonDeserialize(using = Deserializer.DeserializeTime.class)
-    @JsonProperty("end_time")
-    private LocalTime endTime;
-    @JsonProperty("duration")
-    private int duration;
-    @JsonProperty("today")
-    private boolean today;
-    @JsonProperty("over")
-    private boolean over;
-    @JsonProperty("allDayEvent")
-    private boolean allDayEvent;
-    @JsonProperty("multipleDayEvent")
-    private boolean multipleDayEvent;
+    @JsonProperty("endTime")
+    private Instant endTime;
     @JsonProperty("lecturer")
     private String lecturer;
-    @JsonProperty("location")
-    private String location;
+    @JsonProperty("rooms")
+    private List<String> rooms;
     @JsonIgnore
     private final Map<String, Object> additionalProperties = new HashMap<>();
-
-
-    @JsonProperty("course")
-    public String getCourse() {
-        return course;
-    }
 
     @JsonProperty("name")
     public String getName() {
         return name;
     }
 
-    @JsonProperty("start_date")
-    public LocalDate getStartDate() {
-        return startDate;
+    @JsonProperty("date")
+    public LocalDate getDate() {
+        return date;
     }
 
     @JsonProperty("start_time")
-    public LocalTime getStartTime() {
+    public Instant getStartTime() {
         return startTime;
     }
 
-    @JsonProperty("end_date")
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
     @JsonProperty("end_time")
-    public LocalTime getEndTime() {
+    public Instant getEndTime() {
         return endTime;
-    }
-
-    @JsonProperty("duration")
-    public int getDuration() {
-        return duration;
-    }
-
-    @JsonProperty("today")
-    public boolean isToday() {
-        return today;
-    }
-
-    @JsonProperty("over")
-    public boolean isOver() {
-        return over;
-    }
-
-    @JsonProperty("allDayEvent")
-    public boolean isAllDayEvent() {
-        return allDayEvent;
-    }
-
-    @JsonProperty("multipleDayEvent")
-    public boolean isMultipleDayEvent() {
-        return multipleDayEvent;
     }
 
     @JsonProperty("lecturer")
@@ -128,9 +68,9 @@ public class Lecture {
         return lecturer;
     }
 
-    @JsonProperty("location")
-    public String getLocation() {
-        return location;
+    @JsonProperty("rooms")
+    public List<String> getRooms() {
+        return rooms;
     }
 
     @JsonAnyGetter
