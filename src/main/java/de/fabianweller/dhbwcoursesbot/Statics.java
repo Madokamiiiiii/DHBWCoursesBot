@@ -6,7 +6,7 @@ import java.util.Locale;
 
 public class Statics {
     private Statics() {}
-    public static final String BASE_URL = "https://stuv.hardtke.host/rapla/lectures/";
+    public static final String BASE_URL = "https://api.stuv.app/rapla/lectures/";
     public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM")
             .withLocale(Locale.GERMAN)
             .withZone(ZoneId.systemDefault());
