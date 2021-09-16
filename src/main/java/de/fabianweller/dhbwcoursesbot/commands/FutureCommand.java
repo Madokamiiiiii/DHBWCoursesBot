@@ -16,6 +16,7 @@ import java.awt.Color;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.List;
@@ -69,14 +70,14 @@ public class FutureCommand implements CommandExecutor {
 
         channel.sendMessage(new EmbedBuilder()
                 .setTitle(course)
-                .setDescription("Zeitraum: " + today.toString() + " bis " + today.plus(Duration.ofDays(time * 7L - 3L)))
+                .setDescription("Zeitraum: " + today.toString() + " bis " + today.plus(Period.ofDays(time * 7 - 2)))
                 .setColor(Color.GREEN));
 
         for (int i = 1; i <= time; i++) {
             int finalI = i;
             var messageToSend = LectureData.createWeekMessage(lectureData.stream()
-                    .filter(lecture -> lecture.getDate().isBefore(today.plus(Duration.ofDays(finalI * 7L)))
-                            && lecture.getDate().isAfter(today.plus(Duration.ofDays((finalI - 1L) * 7L))))
+                    .filter(lecture -> lecture.getDate().isBefore(today.plus(Period.ofDays(finalI * 7)))
+                            && lecture.getDate().isAfter(today.plus(Period.ofDays((finalI - 1) * 7))))
                     .collect(Collectors.toList()));
             if (i != time) {
                 messageToSend.append("---------------------\n");

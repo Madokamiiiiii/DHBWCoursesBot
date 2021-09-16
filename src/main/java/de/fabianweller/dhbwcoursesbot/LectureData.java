@@ -53,12 +53,13 @@ public class LectureData {
                 currDate[0] = lecture.getDate();
             }
 
-            messageToSend.append(Statics.DATE_FORMATTER.format(lecture.getDate())
+            messageToSend.append("`"
+                    + Statics.DATE_FORMATTER.format(lecture.getStartTime())
                     + "     "
                     + Statics.TIME_FORMATTER.format(lecture.getStartTime()) + " - "
                     + Statics.TIME_FORMATTER.format(lecture.getEndTime()) + "   ---  "
                     + lecture.getRooms() + "   "
-                    + lecture.getName())
+                    + lecture.getName() + "`")
                     .appendNewLine();
         });
         return messageToSend;
@@ -78,12 +79,13 @@ public class LectureData {
                 .append("Heutige Vorlesung(en):", MessageDecoration.BOLD)
                 .appendNewLine();
 
-        todayLectures.forEach(lecture -> messageToSend.append(Statics.DATE_FORMATTER.format(lecture.getDate())
+        todayLectures.forEach(lecture -> messageToSend.append("`"
+                + Statics.DATE_FORMATTER.format(lecture.getStartTime())
                 + "     "
                 + Statics.TIME_FORMATTER.format(lecture.getStartTime()) + " - "
                 + Statics.TIME_FORMATTER.format(lecture.getEndTime()) + "   ---  "
                 + lecture.getRooms() + "   "
-                + lecture.getName())
+                + lecture.getName() + "`")
                 .appendNewLine());
         return messageToSend;
     }
