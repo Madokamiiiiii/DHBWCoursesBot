@@ -4,6 +4,8 @@ import de.btobastian.sdcf4j.Command;
 import de.btobastian.sdcf4j.CommandExecutor;
 import de.fabianweller.dhbwcoursesbot.Lecture;
 import de.fabianweller.dhbwcoursesbot.LectureData;
+import de.fabianweller.dhbwcoursesbot.exceptions.BadEndpointException;
+import de.fabianweller.dhbwcoursesbot.exceptions.NoSuchCourseException;
 import org.javacord.api.entity.channel.TextChannel;
 import org.javacord.api.entity.message.Message;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
@@ -17,6 +19,7 @@ import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -46,14 +49,19 @@ public class FutureCommand implements CommandExecutor {
 
     private void createMessage(TextChannel channel, String course, int time) {
         var today = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
-        List<Lecture> lectureData;
+        List<Lecture> lectureData = null;
+
         // Get lectures from API and deserialize them
         try {
             lectureData = LectureData.getLectureData(course, today, time);
-        } catch (Exception e) {
-            channel.sendMessage("Kurs nicht gefunden.");
+        } catch (BadEndpointException e) {
+            channel.sendMessage("Endpunkt ist down :(.");
+            return;
+        } catch (NoSuchCourseException e) {
+            channel.sendMessage("Der Kurs wurde nicht gefunden");
             return;
         }
+
         if (lectureData.isEmpty()) {
             log.info("Keine Vorlesungen in den Wochen gefunden.");
             return;
