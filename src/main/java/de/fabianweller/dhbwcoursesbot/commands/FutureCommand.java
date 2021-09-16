@@ -70,7 +70,7 @@ public class FutureCommand implements CommandExecutor {
 
         channel.sendMessage(new EmbedBuilder()
                 .setTitle(course)
-                .setDescription("Zeitraum: " + today.toString() + " bis " + today.plus(Period.ofDays(time * 7 - 2)))
+                .setDescription("Zeitraum: " + LocalDate.now().toString() + " bis " + today.plus(Period.ofDays(time * 7 - 2)))
                 .setColor(Color.GREEN));
 
         for (int i = 1; i <= time; i++) {

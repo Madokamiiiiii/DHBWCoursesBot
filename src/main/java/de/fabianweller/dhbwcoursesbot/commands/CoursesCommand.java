@@ -67,7 +67,7 @@ public class CoursesCommand implements CommandExecutor {
 
                             channel.sendMessage(new EmbedBuilder()
                                     .setTitle(course)
-                                    .setDescription("Zeitraum: " + today.plus(Period.ofDays(1)).toString() + " bis " + today.plus(Period.ofDays(5)))
+                                    .setDescription("Zeitraum: " + LocalDate.now().toString() + " bis " + today.plus(Period.ofDays(5)))
                                     .setColor(Color.GREEN));
 
                             messageToSend.send(channel);
