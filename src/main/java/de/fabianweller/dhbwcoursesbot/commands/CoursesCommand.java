@@ -60,6 +60,12 @@ public class CoursesCommand implements CommandExecutor {
                         return;
                     }
 
+                    if (lectureData.isEmpty()) {
+                        TimeUnit.MINUTES.sleep(30);
+                        log.info("No lectures found for week with day " + today);
+                        continue;
+                    }
+
                     // Create new message for new weeks
                     if (firstRun || day.equals(DayOfWeek.SATURDAY)) {
 

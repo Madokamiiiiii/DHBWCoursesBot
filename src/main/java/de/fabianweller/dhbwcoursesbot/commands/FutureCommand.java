@@ -50,7 +50,7 @@ public class FutureCommand implements CommandExecutor {
 
     private void createMessage(TextChannel channel, String course, int time) {
         var today = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
-        List<Lecture> lectureData = null;
+        List<Lecture> lectureData;
 
         // Get lectures from API and deserialize them
         try {

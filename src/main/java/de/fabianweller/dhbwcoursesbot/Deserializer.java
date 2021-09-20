@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 
 public class Deserializer {
     private Deserializer() {}
@@ -25,7 +25,8 @@ public class Deserializer {
 
         @Override
         public LocalDate deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            return LocalDate.parse(p.getText(), DateTimeFormatter.ISO_DATE_TIME);
+            var timestamp= Instant.parse(p.getText());
+            return LocalDate.ofInstant(timestamp, ZoneId.of(Statics.TIMEZONE));
         }
     }
 }
